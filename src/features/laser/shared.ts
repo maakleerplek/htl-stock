@@ -1,5 +1,5 @@
 import { useRates, type Rates } from '../../lib/checkoutApi';
-import { useLaserSocket, type LaserSession, type LaserOperation, type LaserOutcome, type LaserSetting } from '../../lib/laserApi';
+import { laserMinutes, useLaserSocket, type LaserSession, type LaserOperation, type LaserOutcome, type LaserSetting } from '../../lib/laserApi';
 
 export interface LaserCutterPageProps {
   /** Go to the checkout, to buy material. */
@@ -39,7 +39,7 @@ export const CUT_GRID = 'grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] ga
 
 /** What paying these cuts together costs: rounded up once, at least the machine minimum. */
 export const payPrice = (list: LaserSession[], rate: LaserRate) =>
-  Math.max(laserSessionPrice(Math.ceil(list.reduce((t, s) => t + s.total_time, 0) / 60), rate), rate.minimum);
+  Math.max(laserSessionPrice(laserMinutes(list), rate), rate.minimum);
 export type LaserRate = Rates['laser'];
 /** Until the checkout server's rates are in. */
 export const NO_RATE: LaserRate = { per_minute: 0, minimum: 0 };

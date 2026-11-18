@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ShoppingCart, Folder, FolderX, Pencil, ChevronRight } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { laserApi, shortDuration, type LaserSession, type LaserProject } from '../../lib/laserApi';
+import { laserApi, laserMinutes, shortDuration, type LaserSession, type LaserProject } from '../../lib/laserApi';
 import { CUT_GRID, payPrice, laserSessionPrice, useLaserRate, cutCount } from './shared';
 import { CutRow } from './CutRow';
 import { ProjectNameForm } from './ProjectMenu';
@@ -16,8 +16,9 @@ export function ProjectBlock({ project, cuts, busy, run, onCheckout, dragProps, 
   const [renaming, setRenaming] = useState(false);
   const [open, setOpen] = useState(false);   // a closed project is one row; tap it for its cuts
   const seconds = cuts.reduce((t, s) => t + s.total_time, 0);
-  const price = payPrice(cuts, rate);
-  const atMinimum = laserSessionPrice(Math.ceil(seconds / 60), rate) < rate.minimum;
+  const payable = cuts.filter(s => !s.checkout_at);   // cuts already in a till cart are paid there
+  const price = payPrice(payable, rate);
+  const atMinimum = laserSessionPrice(laserMinutes(payable), rate) < rate.minimum;
   return (
     <section data-drop={project.id} className={cn('border-2', project.collecting ? 'border-laser' : 'border-brand-black', dropActive ? 'bg-laser-licht' : 'bg-white')} aria-label={`Project ${project.name}`}>
       <div className={cn('flex items-center gap-2 px-3 py-2 bg-brand-beige-dark', open && 'border-b border-lijn')}>
@@ -54,8 +55,8 @@ export function ProjectBlock({ project, cuts, busy, run, onCheckout, dragProps, 
           : <p className="border border-dashed border-lijn p-3 text-center text-sm text-grafiet">No cuts yet</p>}
         <div className="flex gap-2">
           <button className="flex-1 brutalist-button h-12 bg-emerald-400 text-brand-black font-semibold flex items-center justify-center gap-2 disabled:opacity-40"
-            disabled={busy || !cuts.some(s => !s.checkout_at)} onClick={() => onCheckout(cuts.filter(s => !s.checkout_at).map(s => s.id))}>
-            <ShoppingCart size={16} aria-hidden /> Pay €{price.toFixed(2)}{atMinimum && cuts.length > 0 && <span className="text-xs font-normal">(minimum)</span>}
+            disabled={busy || !payable.length} onClick={() => onCheckout(payable.map(s => s.id))}>
+            <ShoppingCart size={16} aria-hidden /> Pay €{price.toFixed(2)}{atMinimum && payable.length > 0 && <span className="text-xs font-normal">(minimum)</span>}
           </button>
           {/* Removes only the folder: the cuts go back to New cuts, nothing is deleted. */}
           <button className="brutalist-button h-12 w-12 p-0! shrink-0 bg-white text-red-600 hover:bg-red-50 flex items-center justify-center disabled:opacity-40" disabled={busy}

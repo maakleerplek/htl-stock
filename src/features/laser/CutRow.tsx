@@ -1,4 +1,4 @@
-import { X, ShoppingCart, Scissors, Check, Tag, GripVertical } from 'lucide-react';
+import { X, ShoppingCart, Scissors, Check, Tag, GripHorizontal } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { shortDuration, cutPreviewUrl, NEW_TAG, type LaserSession } from '../../lib/laserApi';
 import { laserSessionPrice, useLaserRate } from './shared';
@@ -89,7 +89,7 @@ export function CutRow({ cut, ticked, fresh = false, busy, onToggle, onTakeOut, 
       <label onClick={e => { e.preventDefault(); onToggle(e.shiftKey); }}
         onMouseEnter={() => onHover?.(true)} onMouseLeave={() => onHover?.(false)}
         // Hover darkens the whole card and a press sinks it: the card itself is the button, not only the checkbox.
-        className={cn('group relative flex flex-col h-full border-2 cursor-pointer bg-white transition-[filter,scale] duration-100 hover:brightness-95 active:brightness-90 active:scale-[0.98]',
+        className={cn('group relative flex flex-col h-full border-2 cursor-pointer active:cursor-grabbing bg-white transition-[filter,scale] duration-100 hover:brightness-95 active:brightness-90 active:scale-[0.98]',
           ticked ? 'border-laser bg-laser-licht/30' : preview ? 'border-laser border-dashed bg-laser-licht/20' : fresh ? 'border-brand-black' : 'border-lijn hover:border-brand-black')}>
         <input type="checkbox" checked={ticked} readOnly className="sr-only peer" aria-label={`${cut.name}, ${shortDuration(cut.total_time)}`} />
         {picture}
@@ -100,7 +100,11 @@ export function CutRow({ cut, ticked, fresh = false, busy, onToggle, onTakeOut, 
         </span>
         {fresh && <span className={cn('absolute top-2 right-2', NEW_TAG)}>NEW</span>}
         {/* Shows the card can be picked up: people did not know they could drag cuts to a project. */}
-        {drag && <span aria-hidden title="Hold and drag to a project" className="absolute top-10 right-2 w-7 h-7 bg-white/90 border border-lijn flex items-center justify-center text-grafiet"><GripVertical size={16} /></span>}
+        {drag && (
+          <span aria-hidden className="-mt-6 h-6 relative flex items-center justify-center gap-1 bg-brand-beige-dark/90 border-y border-lijn text-xs text-grafiet group-hover:text-brand-black">
+            <GripHorizontal size={14} /> Drag to a project
+          </span>
+        )}
         {info}
       </label>
     </li>

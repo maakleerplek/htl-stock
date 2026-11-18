@@ -181,7 +181,7 @@ export const laserApi = {
   renameSession: (id: string, name: string) => call('/sessions/' + encodeURIComponent(id), 'PATCH', { name }),
   deleteSession: (id: string, reason?: string, kind?: DiscardKind) => call('/sessions/' + encodeURIComponent(id), 'DELETE', { reason, kind }),
   setCheckout: (id: string, on: boolean) => call(`/sessions/${encodeURIComponent(id)}/checkout`, 'POST', { on }),
-  createProject: (name: string) => call<{ id: string }>('/projects', 'POST', { name }),
+  createProject: (name: string, collect = true) => call<{ id: string }>('/projects', 'POST', { name, collect }),
   renameProject: (id: string, name: string) => call('/projects/' + encodeURIComponent(id), 'PATCH', { name }),
   collect: (id: string, on: boolean) => call(`/projects/${encodeURIComponent(id)}/collect`, 'POST', { on }),
   deleteProject: (id: string) => call('/projects/' + encodeURIComponent(id), 'DELETE'),
@@ -214,63 +214,6 @@ export const laserApi = {
   deleteReport: (id: number) => call(`/admin/attempts/${id}`, 'DELETE'),
 };
 
-// Sessions that are sold but could not be marked paid yet. They stay out of the
-// checkout until that works, so nobody pays them twice. Lives in this browser.
-const PENDING_PAID_KEY = 'laserPendingPaid.v1';
-type PendingPaid = { id: string; order: string };
-
-function readPending(): PendingPaid[] {
-  try {
-    const list = JSON.parse(localStorage.getItem(PENDING_PAID_KEY) ?? '[]');
-    return Array.isArray(list) ? list : [];
-  } catch {
-    return [];
-  }
-}
-
-function writePending(list: PendingPaid[]) {
-  try {
-    if (list.length) localStorage.setItem(PENDING_PAID_KEY, JSON.stringify(list));
-    else localStorage.removeItem(PENDING_PAID_KEY);
-  } catch { /* storage blocked: the retries below are all we have */ }
-}
-
-/** Session IDs that are sold but not marked paid on the server yet. */
-export const pendingPaidIds = () => new Set(readPending().map(p => p.id));
-
-const wait = (ms: number) => new Promise(r => setTimeout(r, ms));
-
-/** Mark paid, a few tries. A 404 means it is already paid (or was empty and is gone): done. */
-async function tryMarkPaid(id: string, order: string, tries: number, delayMs: number): Promise<boolean> {
-  for (let i = 0; i < tries; i++) {
-    try {
-      await laserApi.markPaid(id, order);
-      return true;
-    } catch (e) {
-      if (e instanceof LaserApiError && e.status === 404) return true;
-      if (i < tries - 1) await wait(delayMs * (i + 1));
-    }
-  }
-  return false;
-}
-
-/**
- * After a sale: mark the laser session paid. If the laser service stays
- * unreachable, keep it in a queue that flushPendingPaid() works off later.
- * Returns false when it is queued.
- */
-export async function markPaidReliably(id: string, order: string, delayMs = 1000): Promise<boolean> {
-  if (await tryMarkPaid(id, order, 3, delayMs)) return true;
-  writePending([...readPending().filter(p => p.id !== id), { id, order }]);
-  return false;
-}
-
-/** Retry the queued sessions; call on load and whenever the laser service is back. */
-export async function flushPendingPaid(): Promise<void> {
-  for (const p of readPending()) {
-    if (await tryMarkPaid(p.id, p.order, 1, 0)) writePending(readPending().filter(q => q.id !== p.id));
-  }
-}
 
 /** Tell the laser service what this page sees, for its log (debugging a page that shows the wrong state). */
 function clientLog(event: string, extra: Record<string, unknown> = {}) {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import ShoppingCart, { type CartItem } from './ShoppingCart';
 import Extras, { EXTRAS_STORAGE_KEY } from './Extras';
-import { laserApi, pendingPaidIds, cutPreviewUrl, type LaserSession, type LaserProject } from './lib/laserApi';
+import { laserApi, cutPreviewUrl, type LaserSession, type LaserProject } from './lib/laserApi';
 import { type ItemData, type ScanEvent, isLabMaterial } from './sendCodeHandler';
 import { checkoutApi, typedToCart, useBill, extraLabel, billDescription, type CheckoutCart, type TypedJob, type Bill } from './lib/checkoutApi';
 import { useToast } from './ToastContext';
@@ -55,9 +55,7 @@ export default function ShoppingWindow({ scanEvent, onCheckoutResultChange, lase
     checkedOutResultRef.current = checkedOutResult;
     const [typedJobs, setTypedJobs] = useState<TypedJob[]>(storedJobs);
     useEffect(() => { localStorage.setItem(EXTRAS_STORAGE_KEY, JSON.stringify(typedJobs)); }, [typedJobs]);
-    // Sold before the till marked cuts paid itself, and not marked yet: never bill those again.
-    const pendingPaid = pendingPaidIds();
-    const laserInCheckout = laserSessions.filter(s => s.checkout_at && s.total_time > 0 && !pendingPaid.has(s.id));
+    const laserInCheckout = laserSessions.filter(s => s.checkout_at && s.total_time > 0);
     const [isCheckingOut, setIsCheckingOut] = useState<boolean>(false);
     const [confirmOpen, setConfirmOpen] = useState(false);
     // Seconds before "Complete checkout" can be pressed: time to read what is being booked (as on the kiosk).

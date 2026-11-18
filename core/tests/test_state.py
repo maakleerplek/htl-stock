@@ -188,3 +188,11 @@ def test_a_collecting_project_takes_new_cuts_until_idle(tmp_path):
     assert [p['id'] for p in laser.open_projects() if p['collecting']] == [pid]
     # An hour without a cut: the project stops collecting, the next cut stays a new cut.
     assert laser.collecting_project(time.time() + laser.COLLECT_IDLE_S + 60) is None
+
+
+def test_a_paid_project_takes_no_cuts():
+    db.execute('INSERT INTO projects (id, name, created, closed_at) VALUES (?, ?, ?, ?)', ('pc', 'pc', '2026-11-18T10:00:00', '2026-11-18T11:00:00'))
+    db.execute('INSERT INTO sessions (id, name, created) VALUES (?, ?, ?)', ('sc', 'Cut', '2026-11-18T10:30:00'))
+    c = laser.app.test_client()
+    assert c.post('/laser/api/projects/pc/collect', json={'on': True}).status_code == 404
+    assert c.post('/laser/api/sessions/sc/project', json={'project_id': 'pc'}).status_code == 404

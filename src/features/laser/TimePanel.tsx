@@ -3,7 +3,7 @@ import { Trash2, ShoppingCart, Scissors, Wifi, WifiOff, Gauge, Folder, ChevronUp
 import LaserAnimation from '../../components/LaserAnimation';
 import { useToast } from '../../ToastContext';
 import { cn } from '../../lib/utils';
-import { laserApi, shortDuration, isNewCut, useNow, type LaserSession } from '../../lib/laserApi';
+import { laserApi, laserMinutes, shortDuration, isNewCut, useNow, type LaserSession } from '../../lib/laserApi';
 import { type LaserCutterPageProps, TICKED_KEY, CUT_GRID, payPrice, laserSessionPrice, useLaserRate, cutCount, LINK } from './shared';
 import { useCutDrag } from './useCutDrag';
 import { DropTray } from './DropTray';
@@ -230,7 +230,7 @@ export function TimePanel({ onPay, paying, onShop, live, tab, setTab }: LaserCut
           {deleting && (
             <DiscardConfirm
               what={`Delete ${picked.length === 1 ? '1 cut' : `${picked.length} cuts`} with ${shortDuration(pickedSeconds)} unpaid`}
-              value={laserSessionPrice(Math.ceil(pickedSeconds / 60), rate)}
+              value={laserSessionPrice(laserMinutes(picked), rate)}
               askKind
               busy={busy}
               onCancel={() => setDeleting(false)}
@@ -243,7 +243,7 @@ export function TimePanel({ onPay, paying, onShop, live, tab, setTab }: LaserCut
           {moving && (
             <ProjectMenu projects={projects} busy={busy} startNaming={nameFirst} onPick={moveTicked} onCancel={() => setMoving(false)}
               onCreate={name => run(async () => {
-                const { id } = await laserApi.createProject(name);
+                const { id } = await laserApi.createProject(name, false);   // a home for these cuts, not for the next ones
                 for (const s of picked) await laserApi.setProject(s.id, id);
                 setTicked(new Set());
                 setMoving(false);

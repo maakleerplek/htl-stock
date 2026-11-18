@@ -25,7 +25,7 @@ import BuyCarousel from './components/BuyCarousel';
 import ProductPicker from './components/ProductPicker';
 import { woodCategory } from './lib/picker';
 import CheckoutSteps from './components/CheckoutSteps';
-import { flushPendingPaid, useLaserSocket } from './lib/laserApi';
+import { useLaserSocket } from './lib/laserApi';
 import inventreeClient from './api/inventreeClient';
 import { useQuery } from '@tanstack/react-query';
 import { infoQueries } from './features/inventory/queries';
@@ -92,10 +92,6 @@ function AppContent() {
   // One connection to the laser service for the whole app: the Lasercutter
   // tab shows it, the checkout bills the sessions someone pressed Pay on.
   const laser = useLaserSocket();
-  // Sold sessions the laser service missed: mark them paid once it is back.
-  useEffect(() => {
-    if (laser.connected) void flushPendingPaid();
-  }, [laser.connected]);
   const { addToast } = useToast();
   const { isVolunteerMode, sessionChecked } = useVolunteer();
   const { items: stockItems, loading: stockLoading, lastFetched: stockLastFetched, categories: categoryRows, locations: locationRows } = useStock();

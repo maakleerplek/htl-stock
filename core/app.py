@@ -251,12 +251,17 @@ def stop_if_esp_silent(now: float | None = None):
 
 
 def ticker():
+    collecting = collecting_project()
     while True:
         # One failed emit or DB call used to end this thread for good: no more
         # live updates and no ESP timeout, while the health check stayed OK.
         try:
             stop_if_esp_silent()
             close_cut_if_idle()
+            # The hour without a cut ran out: tell the pages, nothing else would.
+            if (now_collecting := collecting_project()) != collecting:
+                collecting = now_collecting
+                broadcast_sessions()
             with state_lock:
                 payload = time_payload()
             socketio.emit('time_update', payload)
@@ -289,7 +294,8 @@ def close_cut_if_idle(now: float | None = None) -> str | None:
     pid = collecting_project(now)
     if pid:
         db.execute('UPDATE sessions SET project_id = ? WHERE id = ?', (pid, sid))
-        db.execute('UPDATE projects SET collecting_at = ? WHERE id = ?', (datetime.fromtimestamp(now).isoformat(), pid))
+        # Only while it still collects: a switch made meanwhile wins.
+        db.execute('UPDATE projects SET collecting_at = ? WHERE id = ? AND collecting_at IS NOT NULL', (datetime.fromtimestamp(now).isoformat(), pid))
     print(f'[cut] {seconds:.1f} s from {start:%H:%M:%S} booked as {sid}' + (f' into project {pid}' if pid else ''))
     broadcast_sessions()
     with state_lock:
@@ -720,7 +726,7 @@ def delete_project(pid):
 def set_session_project(sid):
     """Put an unpaid cut in a project, or (project_id null) back with the new cuts."""
     pid = (request.get_json(silent=True) or {}).get('project_id')
-    if pid is not None and not db.query('SELECT id FROM projects WHERE id = ?', (pid,)):
+    if pid is not None and not db.query('SELECT id FROM projects WHERE id = ? AND closed_at IS NULL', (pid,)):
         return {'error': 'Project not found'}, 404
     if not db.query('SELECT id FROM sessions WHERE id = ? AND paid_at IS NULL', (sid,)):
         return {'error': 'Session not found'}, 404

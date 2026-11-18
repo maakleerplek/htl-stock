@@ -109,7 +109,10 @@ export function useCutDrag(onDrop: (cut: LaserSession, target: DropTarget) => vo
       cleanup();
       if (!active) return;
       // The click that follows the release would tick or untick the card.
-      window.addEventListener('click', ev => { ev.stopPropagation(); ev.preventDefault(); }, { capture: true, once: true });
+      // Touch sends no such click: drop the trap soon, or it eats the next real tap.
+      const eat = (ev: MouseEvent) => { ev.stopPropagation(); ev.preventDefault(); };
+      window.addEventListener('click', eat, { capture: true, once: true });
+      window.setTimeout(() => window.removeEventListener('click', eat, { capture: true }), 300);
       window.setTimeout(() => setDrag(null), 0);
       if (d?.over) dropRef.current(d.cut, d.over);
     };
