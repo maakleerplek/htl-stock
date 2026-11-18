@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ShoppingCart, Folder, FolderX, Pencil, ChevronRight, CircleDot } from 'lucide-react';
+import { ShoppingCart, Folder, FolderX, Pencil, ChevronRight } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { laserApi, shortDuration, type LaserSession, type LaserProject } from '../../lib/laserApi';
 import { CUT_GRID, payPrice, laserSessionPrice, useLaserRate, cutCount } from './shared';
@@ -32,13 +32,6 @@ export function ProjectBlock({ project, cuts, busy, run, onCheckout, dragProps, 
                 <span className="block text-xs text-grafiet">{cutCount(cuts.length)} · {shortDuration(seconds)} · €{price.toFixed(2)}</span>
               </span>
               <ChevronRight size={18} className={cn('shrink-0 transition-transform', open && 'rotate-90')} aria-hidden />
-            </button>
-            <button className={cn('h-8 px-2 shrink-0 border text-xs font-semibold flex items-center gap-1.5', project.collecting ? 'border-laser bg-laser-licht' : 'border-lijn bg-white')}
-              disabled={busy} aria-pressed={!!project.collecting}
-              title={project.collecting ? 'Stop: new cuts stay in New cuts' : 'Put every next cut in this project'}
-              onClick={() => run(() => laserApi.collect(project.id, !project.collecting))}>
-              <CircleDot size={14} className={cn('shrink-0', project.collecting ? 'text-laser animate-pulse' : 'text-grafiet')} aria-hidden />
-              {project.collecting ? 'Taking new cuts' : 'Take new cuts'}
             </button>
             {open && (
               <button className="w-8 h-8 shrink-0 flex items-center justify-center" aria-label="Rename project" title="Rename" onClick={() => setRenaming(true)}>

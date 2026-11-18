@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Trash2, ShoppingCart, Scissors, Wifi, WifiOff, Gauge, Folder, ChevronUp, CircleDot } from 'lucide-react';
+import { Trash2, ShoppingCart, Scissors, Wifi, WifiOff, Gauge, Folder, ChevronUp } from 'lucide-react';
 import LaserAnimation from '../../components/LaserAnimation';
 import { useToast } from '../../ToastContext';
 import { cn } from '../../lib/utils';
@@ -9,7 +9,7 @@ import { useCutDrag } from './useCutDrag';
 import { DropTray } from './DropTray';
 import { CutRow } from './CutRow';
 import { HowItWorks } from './HowItWorks';
-import { NewProject, ProjectMenu } from './ProjectMenu';
+import { NewProject, ProjectMenu, CutTarget } from './ProjectMenu';
 import { ProjectBlock } from './ProjectBlock';
 import { WoodReminder } from './WoodReminder';
 import { DiscardConfirm } from './DiscardConfirm';
@@ -169,6 +169,9 @@ export function TimePanel({ onPay, paying, onShop, live, tab, setTab }: LaserCut
             </button>
           </div>
         )}
+        <CutTarget projects={projects} busy={busy}
+          onPick={id => run(() => id ? laserApi.collect(id, true) : laserApi.collect(collecting!.id, false))}
+          onCreate={name => run(() => laserApi.createProject(name))} />
       </div>
 
       {/* Two sections, one at a time: a tab bar says clearly which one you are in. */}
@@ -186,15 +189,6 @@ export function TimePanel({ onPay, paying, onShop, live, tab, setTab }: LaserCut
       <div className={cn('flex-1 p-4 sm:p-6 space-y-3', tab === 'settings' && 'hidden lg:block')}>
         {(tab === 'cuts' || tab === 'settings') && (
         <div data-drop="new" className={cn('space-y-3', drag?.over === 'new' && 'outline-2 outline-dashed outline-brand-black outline-offset-4 bg-laser-licht/40')}>
-        {collecting && (
-          <div className="flex items-center gap-3 border-2 border-laser bg-laser-licht/40 px-3 py-2">
-            <CircleDot size={18} className="shrink-0 text-laser animate-pulse" aria-hidden />
-            <p className="flex-1 min-w-0 text-sm">Every new cut goes into <button className="font-semibold underline" onClick={() => setTab('projects')}>{collecting.name}</button>
-              <span className="block text-xs text-grafiet">Stops by itself after an hour without cutting.</span></p>
-            <button className="brutalist-button h-10 px-3 bg-white text-sm font-semibold shrink-0" disabled={busy}
-              onClick={() => run(() => laserApi.collect(collecting.id, false))}>Stop</button>
-          </div>
-        )}
         {loose.length > 0 && (
           <div className="flex items-center justify-end gap-3">
             <p className="mr-auto text-xs text-grafiet">Tap to tick · hold and drag onto a project</p>

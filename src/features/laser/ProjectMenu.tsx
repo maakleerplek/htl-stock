@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { X, Check, Folder, FolderPlus } from 'lucide-react';
+import { X, Check, Folder, FolderPlus, Scissors } from 'lucide-react';
+import { cn } from '../../lib/utils';
 import { type LaserProject } from '../../lib/laserApi';
 
 /** Above the projects: a button to start a new one, then its name. */
@@ -11,7 +12,6 @@ export function NewProject({ busy, onCreate }: { busy: boolean; onCreate: (name:
       <button className="brutalist-button h-10 px-3 bg-white text-sm font-semibold flex items-center gap-2 shrink-0" onClick={() => setNaming(true)}>
         <FolderPlus size={16} className="shrink-0" aria-hidden /> New project
       </button>
-      <p className="text-xs text-grafiet">For a long job: every cut after this goes into it.</p>
     </div>
   );
 }
@@ -55,6 +55,38 @@ export function ProjectMenu({ projects, busy, startNaming = false, onPick, onCre
             <FolderPlus size={16} aria-hidden /> New project…
           </button>
         )}
+    </div>
+  );
+}
+
+/** Where the laser books the next cut: New cuts (default), an open project, or a project you make now. */
+export function CutTarget({ projects, busy, onPick, onCreate }: {
+  projects: LaserProject[]; busy: boolean; onPick: (id: string | null) => void; onCreate: (name: string) => void;
+}) {
+  const [naming, setNaming] = useState(false);
+  const current = projects.find(p => p.collecting);
+  const chip = (on: boolean) => cn('brutalist-button h-9 px-3 text-sm font-semibold flex items-center gap-1.5 max-w-48', on ? 'bg-brand-black text-white' : 'bg-white');
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs font-semibold text-grafiet">Next cuts go to</p>
+      {naming
+        ? <ProjectNameForm label="Start" busy={busy} onCancel={() => setNaming(false)} onSave={name => { onCreate(name); setNaming(false); }} />
+        : (
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Next cuts go to">
+            <button role="radio" aria-checked={!current} disabled={busy} className={chip(!current)} onClick={() => current && onPick(null)}>
+              <Scissors size={14} className="shrink-0" aria-hidden /> New cuts
+            </button>
+            {projects.map(p => (
+              <button key={p.id} role="radio" aria-checked={!!p.collecting} disabled={busy} className={chip(!!p.collecting)} onClick={() => !p.collecting && onPick(p.id)}>
+                <Folder size={14} className="shrink-0" aria-hidden /><span className="truncate">{p.name}</span>
+              </button>
+            ))}
+            <button disabled={busy} className="brutalist-button h-9 px-3 text-sm font-semibold flex items-center gap-1.5 bg-white border-dashed" onClick={() => setNaming(true)}>
+              <FolderPlus size={14} className="shrink-0" aria-hidden /> Make project
+            </button>
+          </div>
+        )}
+      <p className="text-xs text-grafiet">{current ? 'Back to New cuts by itself after an hour without cutting.' : 'A short cut can stay here. A long job? Make a project first.'}</p>
     </div>
   );
 }
