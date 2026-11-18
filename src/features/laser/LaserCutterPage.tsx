@@ -13,7 +13,7 @@ export default function LaserCutterPage({ onShop, live }: LaserCutterPageProps) 
   return (
     <div className="flex-1 overflow-auto bg-brand-beige">
       <div className="grid grid-cols-1 lg:grid-cols-2 lg:divide-x divide-lijn min-h-full">
-        <TimePanel onPay={setPaying} onShop={onShop} live={live} tab={tab} setTab={setTab} />
+        <TimePanel onPay={setPaying} paying={!!paying} onShop={onShop} live={live} tab={tab} setTab={setTab} />
         {/* Narrow: behind the Settings tab. Wide: always there, next to and under the cuts. */}
         <div className={tab === 'settings' ? 'contents' : 'hidden lg:contents'}>
           <SettingsPanel libraryVersion={libraryVersion} />

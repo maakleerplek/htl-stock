@@ -16,7 +16,7 @@ import { DiscardConfirm } from './DiscardConfirm';
 
 export type LaserTab = 'cuts' | 'projects' | 'settings';
 
-export function TimePanel({ onPay, onShop, live, tab, setTab }: LaserCutterPageProps & { onPay: (ids: string[]) => void; tab: LaserTab; setTab: (t: LaserTab) => void }) {
+export function TimePanel({ onPay, paying, onShop, live, tab, setTab }: LaserCutterPageProps & { onPay: (ids: string[]) => void; paying: boolean; tab: LaserTab; setTab: (t: LaserTab) => void }) {
   const rate = useLaserRate();
   const { connected, time, sessions, projects } = live;
   const { addToast } = useToast();
@@ -267,7 +267,7 @@ export function TimePanel({ onPay, onShop, live, tab, setTab }: LaserCutterPageP
         </div>
       )}
       {/* Ticking a cut already shows the dock, so you see that cuts can be dragged into a project. */}
-      {(drag || (tab === 'cuts' && picked.length > 0 && !moving && !deleting)) && (
+      {(drag || (tab === 'cuts' && picked.length > 0 && !moving && !deleting && !paying)) && (
         <DropTray drag={drag} projects={projects} onPick={id => {
           if (id === 'newproject') { setNameFirst(true); setMoving(true); setDeleting(false); }
           else if (id !== 'new') void moveTicked(id);

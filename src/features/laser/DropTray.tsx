@@ -19,7 +19,7 @@ export function DropTray({ drag, projects, onPick }: { drag: CutDrag | null; pro
   return (
     // Only as tall as its boxes. Above the dragged card (z 60).
     <div data-tray className="fixed right-0 top-1/2 -translate-y-1/2 z-[70] max-h-[85dvh] overflow-y-auto rounded-l-2xl bg-brand-black p-2.5 shadow-[-4px_0_16px_rgba(0,0,0,0.3)]">
-      {!drag && <p className="w-24 pb-2 text-xs leading-tight font-semibold text-white text-center">Drag or tap to file</p>}
+      {!drag && <p className="w-24 pb-2 text-xs leading-tight font-semibold text-white text-center">Drag here</p>}
       <ul className="flex flex-col gap-2.5">
         {projects.filter(p => p.id !== from).map(p => box(p.id, p.name, <FolderInput size={26} className="shrink-0" aria-hidden />))}
         {from && box('new', 'New cuts', <Undo2 size={26} className="shrink-0" aria-hidden />)}
