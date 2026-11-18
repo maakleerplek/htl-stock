@@ -3,13 +3,14 @@ import ShoppingCart, { type CartItem } from './ShoppingCart';
 import Extras, { EXTRAS_STORAGE_KEY } from './Extras';
 import { laserApi, pendingPaidIds, cutPreviewUrl, type LaserSession } from './lib/laserApi';
 import { type ItemData, type ScanEvent, isLabMaterial } from './sendCodeHandler';
-import { checkoutApi, typedToCart, useBill, extraLabel, type CheckoutCart, type TypedJob, type Bill } from './lib/checkoutApi';
+import { checkoutApi, typedToCart, useBill, extraLabel, billDescription, type CheckoutCart, type TypedJob, type Bill } from './lib/checkoutApi';
 import { useToast } from './ToastContext';
 import { useVolunteer } from './VolunteerContext';
 import type { Invoice } from './lib/invoice';
 import ModalFrame from './components/ModalFrame';
 import { invalidateInventree } from './features/inventory/queryClient';
 import { AlertCircle, Check, X, Timer } from 'lucide-react';
+import { useLock } from './lib/useLock';
 
 interface ShoppingWindowProps {
     scanEvent: ScanEvent | null;
@@ -23,21 +24,6 @@ const CART_STORAGE_KEY = 'stockManagerCartItems.v2';
 
 /** The last scan put in the cart: kept outside the component, so it survives a remount. */
 let handledScanId: number | null = null;
-
-/** Seconds a button stays locked after `open` turns true: time to read first (as on the kiosk). */
-function useLock(open: boolean, seconds = 2): number {
-    const [left, setLeft] = useState(0);
-    useEffect(() => {
-        if (!open) return;
-        setLeft(seconds);
-        const id = window.setInterval(() => setLeft(n => {
-            if (n <= 1) window.clearInterval(id);
-            return Math.max(0, n - 1);
-        }), 1000);
-        return () => window.clearInterval(id);
-    }, [open, seconds]);
-    return left;
-}
 
 /** Hand-typed machine time of the open checkout, kept over a refresh like the cart. */
 function storedJobs(): TypedJob[] {
@@ -201,9 +187,7 @@ export default function ShoppingWindow({ scanEvent, onCheckoutResultChange, lase
                 ...(b.top_up > 0 ? [{ name: 'Minimum per payment (machines)', quantity: 1, unitPrice: b.top_up }] : []),
             ],
         });
-        let desc = [...b.items.map(i => `${i.name} x${i.quantity}`), ...b.extras.map(e => `${extraLabel(e)} ${e.quantity} ${e.unit}`)].join(', ');
-        if (desc.length > 135) desc = desc.substring(0, 132) + '...';
-        setCheckedOut({ total: b.total, description: desc, free: freeSale });
+        setCheckedOut({ total: b.total, description: billDescription(b), free: freeSale });
     };
 
     const handleConfirmedCheckout = async () => {

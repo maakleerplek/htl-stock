@@ -68,6 +68,12 @@ export const typedToCart = (jobs: TypedJob[]): Pick<CheckoutCart, 'prints' | 'ma
 
 export const extraLabel = (e: BillExtra) => (e.description ? `${e.reference} – ${e.description}` : e.reference);
 
+/** What the bill was for, short enough for the payment QR code's text. */
+export function billDescription(b: Bill): string {
+  const desc = [...b.items.map(i => `${i.name} x${i.quantity}`), ...b.extras.map(e => `${extraLabel(e)} ${e.quantity} ${e.unit}`)].join(', ');
+  return desc.length > 135 ? desc.substring(0, 132) + '...' : desc;
+}
+
 let ratesCache: Promise<Rates> | null = null;
 
 /** The machine rates, loaded once per page (the server caches InvenTree for 5 min). Null until loaded. */
