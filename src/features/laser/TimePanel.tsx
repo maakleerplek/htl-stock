@@ -266,7 +266,13 @@ export function TimePanel({ onPay, onShop, live, tab, setTab }: LaserCutterPageP
           </div>
         </div>
       )}
-      {drag && <DropTray drag={drag} projects={projects} />}
+      {/* Ticking a cut already shows the dock, so you see that cuts can be dragged into a project. */}
+      {(drag || (tab === 'cuts' && picked.length > 0 && !moving && !deleting)) && (
+        <DropTray drag={drag} projects={projects} onPick={id => {
+          if (id === 'newproject') { setNameFirst(true); setMoving(true); setDeleting(false); }
+          else if (id !== 'new') void moveTicked(id);
+        }} />
+      )}
     </section>
   );
 }
