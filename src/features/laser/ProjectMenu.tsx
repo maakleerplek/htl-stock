@@ -7,10 +7,11 @@ export function NewProject({ busy, onCreate }: { busy: boolean; onCreate: (name:
   const [naming, setNaming] = useState(false);
   if (naming) return <ProjectNameForm label="Start" busy={busy} onCancel={() => setNaming(false)} onSave={name => { onCreate(name); setNaming(false); }} />;
   return (
-    <div className="flex">
-      <button className="brutalist-button h-10 px-3 bg-white text-sm font-semibold flex items-center gap-2" onClick={() => setNaming(true)}>
+    <div className="flex items-center gap-3">
+      <button className="brutalist-button h-10 px-3 bg-white text-sm font-semibold flex items-center gap-2 shrink-0" onClick={() => setNaming(true)}>
         <FolderPlus size={16} className="shrink-0" aria-hidden /> New project
       </button>
+      <p className="text-xs text-grafiet">For a long job: every cut after this goes into it.</p>
     </div>
   );
 }

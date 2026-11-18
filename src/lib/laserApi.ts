@@ -30,6 +30,8 @@ export interface LaserProject {
   id: string;
   name: string;
   created: string;
+  /** Takes every new cut the laser books (one project at a time; stops after an hour without a cut). */
+  collecting?: boolean;
 }
 
 /** Every session, open and paid, for the analytics (GET /sessions/all). */
@@ -181,6 +183,7 @@ export const laserApi = {
   setCheckout: (id: string, on: boolean) => call(`/sessions/${encodeURIComponent(id)}/checkout`, 'POST', { on }),
   createProject: (name: string) => call<{ id: string }>('/projects', 'POST', { name }),
   renameProject: (id: string, name: string) => call('/projects/' + encodeURIComponent(id), 'PATCH', { name }),
+  collect: (id: string, on: boolean) => call(`/projects/${encodeURIComponent(id)}/collect`, 'POST', { on }),
   deleteProject: (id: string) => call('/projects/' + encodeURIComponent(id), 'DELETE'),
   setProject: (sessionId: string, projectId: string | null) =>
     call(`/sessions/${encodeURIComponent(sessionId)}/project`, 'POST', { project_id: projectId }),

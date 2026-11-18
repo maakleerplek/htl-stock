@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { Check, X, Loader2 } from 'lucide-react';
+import { Check, X, Loader2, Scissors } from 'lucide-react';
+import { cutPreviewUrl, shortDuration, type LaserSession } from '../../lib/laserApi';
 import ModalFrame from '../../components/ModalFrame';
 import WeroQrCode from '../../QrCode';
 import { useToast } from '../../ToastContext';
@@ -9,7 +10,8 @@ import { invalidateInventree } from '../../features/inventory/queryClient';
 
 /** Pay laser cuts right on the laser page: the bill, 2 s to read it, then the QR code.
  *  Same sale as the till (core/checkout.py), only with cuts and no items. */
-export function PayCuts({ ids, onClose }: { ids: string[]; onClose: () => void }) {
+export function PayCuts({ cuts, onClose }: { cuts: LaserSession[]; onClose: () => void }) {
+  const ids = cuts.map(c => c.id);
   const { addToast } = useToast();
   const cart: CheckoutCart = { items: [], prints: [], machines: [], cuts: ids };
   const { bill, error } = useBill(cart);
@@ -42,6 +44,19 @@ export function PayCuts({ ids, onClose }: { ids: string[]; onClose: () => void }
         {!paid && <button onClick={onClose} aria-label="Cancel"><X size={22} /></button>}
       </div>
       <div className="p-4 sm:p-6 bg-white space-y-3">
+        <ul className="flex gap-2 overflow-x-auto pb-1" aria-label="Cuts you pay for">
+          {cuts.map(c => (
+            <li key={c.id} className="w-24 shrink-0">
+              <div className="h-20 border border-lijn bg-brand-beige-dark flex items-center justify-center">
+                {c.has_preview
+                  ? <img src={cutPreviewUrl(c.id)} alt="" className="w-full h-full object-contain p-1" />
+                  : <Scissors size={20} className="text-grafiet" aria-hidden />}
+              </div>
+              <p className="text-xs font-semibold truncate mt-1">{c.name}</p>
+              <p className="text-xs text-grafiet tabular-nums">{shortDuration(c.total_time)}</p>
+            </li>
+          ))}
+        </ul>
         {!shown && (error
           ? <p className="text-sm text-red-700">Cannot price these cuts: {error}</p>
           : <p className="text-sm text-grafiet flex items-center gap-2"><Loader2 size={16} className="animate-spin" /> Pricing…</p>)}

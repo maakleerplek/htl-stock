@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Trash2, ShoppingCart, Scissors, Wifi, WifiOff, Gauge, Folder, ChevronUp } from 'lucide-react';
+import { Trash2, ShoppingCart, Scissors, Wifi, WifiOff, Gauge, Folder, ChevronUp, CircleDot } from 'lucide-react';
 import LaserAnimation from '../../components/LaserAnimation';
 import { useToast } from '../../ToastContext';
 import { cn } from '../../lib/utils';
@@ -40,6 +40,7 @@ export function TimePanel({ onPay, paying, onShop, live, tab, setTab }: LaserCut
     finally { setBusy(false); }
   };
 
+  const collecting = projects.find(pr => pr.collecting);
   const laserOn = time?.laser_state ?? false;
   const openCut = time?.global_time ?? 0;   // laser time not booked as a cut yet
   const sensorOk = connected && (time?.esp_connected || time?.simulate);
@@ -154,7 +155,8 @@ export function TimePanel({ onPay, paying, onShop, live, tab, setTab }: LaserCut
               </span>
             </div>
           </div>
-          {openCut > 0 && <div className="text-2xl font-semibold tabular-nums text-brand-black leading-none">{shortDuration(openCut)}</div>}
+          {openCut > 0 && <div className="text-2xl font-semibold tabular-nums text-brand-black leading-none">{shortDuration(openCut)}
+            {collecting && <span className="block text-xs font-normal truncate max-w-32">→ {collecting.name}</span>}</div>}
           {/* Decoration only: the full cutter where there is room, just the head on a narrow screen. */}
           <div className="hidden sm:block flex-1 min-w-[152px] max-w-[304px]"><LaserAnimation active={laserOn} /></div>
           <div className="sm:hidden flex-1 min-w-0 flex justify-center"><div className="w-full max-w-[240px]"><LaserAnimation active={laserOn} compact /></div></div>
@@ -184,6 +186,15 @@ export function TimePanel({ onPay, paying, onShop, live, tab, setTab }: LaserCut
       <div className={cn('flex-1 p-4 sm:p-6 space-y-3', tab === 'settings' && 'hidden lg:block')}>
         {(tab === 'cuts' || tab === 'settings') && (
         <div data-drop="new" className={cn('space-y-3', drag?.over === 'new' && 'outline-2 outline-dashed outline-brand-black outline-offset-4 bg-laser-licht/40')}>
+        {collecting && (
+          <div className="flex items-center gap-3 border-2 border-laser bg-laser-licht/40 px-3 py-2">
+            <CircleDot size={18} className="shrink-0 text-laser animate-pulse" aria-hidden />
+            <p className="flex-1 min-w-0 text-sm">Every new cut goes into <button className="font-semibold underline" onClick={() => setTab('projects')}>{collecting.name}</button>
+              <span className="block text-xs text-grafiet">Stops by itself after an hour without cutting.</span></p>
+            <button className="brutalist-button h-10 px-3 bg-white text-sm font-semibold shrink-0" disabled={busy}
+              onClick={() => run(() => laserApi.collect(collecting.id, false))}>Stop</button>
+          </div>
+        )}
         {loose.length > 0 && (
           <div className="flex items-center justify-end gap-3">
             <p className="mr-auto text-xs text-grafiet">Tap to tick · hold and drag onto a project</p>
@@ -210,7 +221,7 @@ export function TimePanel({ onPay, paying, onShop, live, tab, setTab }: LaserCut
 
         {tab === 'projects' && (<>
           <NewProject busy={busy} onCreate={name => run(() => laserApi.createProject(name))} />
-          {projects.length === 0 && <p className="border border-dashed border-lijn p-4 text-center text-sm text-grafiet">No projects yet. Make one, then drag cuts from New cuts onto it, or tick them and tap Add to project.</p>}
+          {projects.length === 0 && <p className="border border-dashed border-lijn p-4 text-center text-sm text-grafiet">A short cut or two can stay in New cuts. A long job (30 min or more)? Make a project: every cut after that goes into it by itself.</p>}
           {projects.map(p => (
             <ProjectBlock key={p.id} project={p} cuts={cuts.filter(s => s.project_id === p.id)} busy={busy} run={run} onCheckout={onPay}
               dragProps={dragProps} dropActive={drag?.over === p.id} />

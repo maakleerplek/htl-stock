@@ -48,6 +48,8 @@ ESP_ALLOWED_IPS = {ip.strip() for ip in os.environ.get('ESP_ALLOWED_IPS', '').sp
 # On the real laser 87 of 128 pauses inside the same month were under 5 s, 34 over 30 s.
 CUT_GAP_S = float(os.environ.get('CUT_GAP_S', '5'))
 MIN_CUT_SECONDS = 10   # shorter is a test pulse or Frame, not a job: dropped (free)
+# A collecting project stops taking new cuts after this long without one: the next visitor's cuts stay theirs.
+COLLECT_IDLE_S = 60 * 60
 ESP_OFF_DELAY_S = 1.0   # monitorOTA.ino offDelay: the OFF packet comes 1 s after the beam stopped
 
 app = Flask(__name__)
@@ -284,7 +286,11 @@ def close_cut_if_idle(now: float | None = None) -> str | None:
     db.execute('INSERT INTO sessions (id, name, created, file, preview) VALUES (?, ?, ?, ?, ?)',
                (sid, name[:80], start.isoformat(), job['name'] if job else None, job['thumb'] if job else None))
     book_time(sid, seconds)
-    print(f'[cut] {seconds:.1f} s from {start:%H:%M:%S} booked as {sid}')
+    pid = collecting_project(now)
+    if pid:
+        db.execute('UPDATE sessions SET project_id = ? WHERE id = ?', (pid, sid))
+        db.execute('UPDATE projects SET collecting_at = ? WHERE id = ?', (datetime.fromtimestamp(now).isoformat(), pid))
+    print(f'[cut] {seconds:.1f} s from {start:%H:%M:%S} booked as {sid}' + (f' into project {pid}' if pid else ''))
     broadcast_sessions()
     with state_lock:
         socketio.emit('time_update', time_payload())
@@ -310,11 +316,30 @@ def all_sessions() -> list[dict]:
     return rows
 
 
+def collecting_project(now: float | None = None) -> str | None:
+    """The project that takes every new cut, if one did so in the last COLLECT_IDLE_S."""
+    since = datetime.fromtimestamp((time.time() if now is None else now) - COLLECT_IDLE_S).isoformat()
+    rows = db.query('SELECT id FROM projects WHERE closed_at IS NULL AND collecting_at >= ? '
+                    'ORDER BY collecting_at DESC LIMIT 1', (since,))
+    return rows[0]['id'] if rows else None
+
+
 def open_projects() -> list[dict]:
     """Projects with unpaid cuts, and empty ones made in the last day (just started, or all cuts taken out)."""
     since = (datetime.now() - timedelta(days=1)).isoformat()
-    return db.query('SELECT id, name, created FROM projects p WHERE closed_at IS NULL AND (created >= ? OR EXISTS '
+    rows = db.query('SELECT id, name, created FROM projects p WHERE closed_at IS NULL AND (created >= ? OR EXISTS '
                     '(SELECT 1 FROM sessions s WHERE s.project_id = p.id AND s.paid_at IS NULL)) ORDER BY created', (since,))
+    collecting = collecting_project()
+    for r in rows:
+        r['collecting'] = r['id'] == collecting
+    return rows
+
+
+def set_collecting(pid: str | None):
+    """One project at a time takes the new cuts; None stops all."""
+    db.execute('UPDATE projects SET collecting_at = NULL WHERE collecting_at IS NOT NULL')
+    if pid:
+        db.execute('UPDATE projects SET collecting_at = ? WHERE id = ?', (datetime.now().isoformat(), pid))
 
 
 def sessions_payload() -> dict:
@@ -524,7 +549,7 @@ def mark_paid(sid: str, order: str | None) -> bool:
     else:
         db.execute('UPDATE sessions SET paid_at = ?, order_ref = ? WHERE id = ?', (datetime.now().isoformat(), order, sid))
     # A project is done once all its cuts are paid; it stays as history for the analytics.
-    db.execute('UPDATE projects SET closed_at = ? WHERE closed_at IS NULL '
+    db.execute('UPDATE projects SET closed_at = ?, collecting_at = NULL WHERE closed_at IS NULL '
                'AND id IN (SELECT project_id FROM sessions WHERE paid_at IS NOT NULL) '
                'AND id NOT IN (SELECT project_id FROM sessions WHERE paid_at IS NULL AND project_id IS NOT NULL)',
                (datetime.now().isoformat(),))
@@ -646,6 +671,9 @@ def create_project():
         return {'error': 'Enter at least 2 characters'}, 400
     pid = str(uuid4())
     db.execute('INSERT INTO projects (id, name, created) VALUES (?, ?, ?)', (pid, name, datetime.now().isoformat()))
+    # A project is for a long job: by default it takes the cuts that come next.
+    if (request.get_json(silent=True) or {}).get('collect', True):
+        set_collecting(pid)
     broadcast_sessions()
     return {'id': pid}
 
@@ -658,6 +686,18 @@ def rename_project(pid):
     if not db.query('SELECT id FROM projects WHERE id = ?', (pid,)):
         return {'error': 'Project not found'}, 404
     db.execute('UPDATE projects SET name = ? WHERE id = ?', (name, pid))
+    broadcast_sessions()
+    return {'ok': True}
+
+
+@app.post('/laser/api/projects/<pid>/collect')
+def collect_project(pid):
+    """Start (on) or stop taking every new cut into this project."""
+    if not db.query('SELECT id FROM projects WHERE id = ? AND closed_at IS NULL', (pid,)):
+        return {'error': 'Project not found'}, 404
+    on = bool((request.get_json(silent=True) or {}).get('on', True))
+    if on or collecting_project() == pid:
+        set_collecting(pid if on else None)
     broadcast_sessions()
     return {'ok': True}
 

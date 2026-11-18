@@ -172,3 +172,19 @@ def test_a_project_without_thumbnail_is_drawn(tmp_path):
     r = c.post('/laser/api/lightburn', json={'name': 'Untitled', 'lbrn': base64.b64encode(gzip.compress(b'<half')).decode()})
     assert r.status_code == 200 and r.json['drawn'] is False
     assert laser.lightburn['thumb'].startswith(b'\x89PNG')
+
+
+def test_a_collecting_project_takes_new_cuts_until_idle(tmp_path):
+    _fresh(tmp_path)
+    pid, other = 'p1', 'p2'
+    for p in (pid, other):
+        db.execute('INSERT INTO projects (id, name, created) VALUES (?, ?, ?)', (p, p, '2026-11-18T10:00:00'))
+    laser.set_collecting(other)
+    laser.set_collecting(pid)   # only one at a time
+    laser.esp_counter(True, 0, 'b1')
+    laser.esp_counter(False, 60_000, 'b1')
+    sid = laser.close_cut_if_idle(time.time() + laser.CUT_GAP_S + 0.1)
+    assert [s['project_id'] for s in laser.all_sessions() if s['id'] == sid] == [pid]
+    assert [p['id'] for p in laser.open_projects() if p['collecting']] == [pid]
+    # An hour without a cut: the project stops collecting, the next cut stays a new cut.
+    assert laser.collecting_project(time.time() + laser.COLLECT_IDLE_S + 60) is None
