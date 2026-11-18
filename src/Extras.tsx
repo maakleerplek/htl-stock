@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
-import { Zap, Drill, Cuboid, Plus } from 'lucide-react';
+import { Zap, Drill, Cuboid, Plus, Folder } from 'lucide-react';
 import { isFilament, filamentType } from './sendCodeHandler';
 import { useRates, type TypedJob } from './lib/checkoutApi';
 import { useStock } from './StockContext';
-import { cutPreviewUrl, shortDuration, isNewCut, useNow, NEW_TAG, type LaserSession } from './lib/laserApi';
+import { cutPreviewUrl, shortDuration, isNewCut, useNow, NEW_TAG, type LaserSession, type LaserProject } from './lib/laserApi';
 import { cn } from './lib/utils';
 
 /** Machine time added by hand survives a refresh, like the cart. Cleared after a sale. */
@@ -14,6 +14,8 @@ interface ExtrasProps {
     onAdd: (job: TypedJob) => void;
     /** Open laser sessions not in the checkout yet, to pick from. */
     openLaserSessions: LaserSession[];
+    /** A project's open cuts are one row: they are paid together. */
+    laserProjects: LaserProject[];
     onAddLaserSession: (id: string) => void;
 }
 
@@ -21,7 +23,7 @@ const eur = (n: number) => `€${n.toFixed(2)}`;
 /** Under each machine: its minimum counts once per payment, for all machine use together. */
 const minimumText = (minimum: number) => `min. ${eur(minimum)} per payment`;
 
-export default function Extras({ onAdd: add, openLaserSessions, onAddLaserSession }: ExtrasProps) {
+export default function Extras({ onAdd: add, openLaserSessions, laserProjects, onAddLaserSession }: ExtrasProps) {
     const rates = useRates();
     const now = useNow();
     const [laserMin, setLaserMin] = useState(0);
@@ -60,7 +62,21 @@ export default function Extras({ onAdd: add, openLaserSessions, onAddLaserSessio
                         )}
                     </div>
                     <ul className="divide-y divide-lijn border-t border-lijn bg-white">
-                        {openLaserSessions.map(s => (
+                        {laserProjects.map(p => ({ p, cuts: openLaserSessions.filter(s => s.project_id === p.id) })).filter(g => g.cuts.length > 0).map(({ p, cuts }) => (
+                            <li key={p.id} className="flex items-center gap-3 px-3 py-2">
+                                <span className="w-11 h-11 shrink-0 border border-lijn bg-brand-beige-dark flex items-center justify-center" aria-hidden><Folder size={18} /></span>
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-semibold truncate">{p.name}</div>
+                                    <div className="text-xs text-grafiet">Project · {cuts.length === 1 ? '1 cut' : `${cuts.length} cuts`}</div>
+                                </div>
+                                <span className="font-semibold tabular-nums">{shortDuration(cuts.reduce((t, s) => t + s.total_time, 0))}</span>
+                                <button onClick={() => cuts.forEach(s => onAddLaserSession(s.id))}
+                                    className="h-11 px-3 border border-brand-black bg-white text-xs font-semibold flex items-center gap-1">
+                                    <Plus size={14} aria-hidden /> Add
+                                </button>
+                            </li>
+                        ))}
+                        {openLaserSessions.filter(s => !laserProjects.some(p => p.id === s.project_id)).map(s => (
                             <li key={s.id} className="flex items-center gap-3 px-3 py-2">
                                 <span className="w-11 h-11 shrink-0 border border-lijn bg-brand-beige-dark flex items-center justify-center overflow-hidden" aria-hidden>
                                     {s.has_preview ? <img src={cutPreviewUrl(s.id)} alt="" className="w-full h-full object-contain" loading="lazy" /> : <Zap size={16} className="text-grafiet" />}

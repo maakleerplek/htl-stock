@@ -1,4 +1,4 @@
-import { X, ShoppingCart, Scissors, Check, Tag } from 'lucide-react';
+import { X, ShoppingCart, Scissors, Check, Tag, GripVertical } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { shortDuration, cutPreviewUrl, NEW_TAG, type LaserSession } from '../../lib/laserApi';
 import { laserSessionPrice, useLaserRate } from './shared';
@@ -99,6 +99,8 @@ export function CutRow({ cut, ticked, fresh = false, busy, onToggle, onTakeOut, 
           <Check size={18} className={cn(ticked ? '' : preview ? 'opacity-50' : 'opacity-0 group-hover:opacity-40')} />
         </span>
         {fresh && <span className={cn('absolute top-2 right-2', NEW_TAG)}>NEW</span>}
+        {/* Shows the card can be picked up: people did not know they could drag cuts to a project. */}
+        {drag && <span aria-hidden title="Hold and drag to a project" className="absolute top-10 right-2 w-7 h-7 bg-white/90 border border-lijn flex items-center justify-center text-grafiet"><GripVertical size={16} /></span>}
         {info}
       </label>
     </li>

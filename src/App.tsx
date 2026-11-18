@@ -25,7 +25,7 @@ import BuyCarousel from './components/BuyCarousel';
 import ProductPicker from './components/ProductPicker';
 import { woodCategory } from './lib/picker';
 import CheckoutSteps from './components/CheckoutSteps';
-import { flushPendingPaid, laserApi, useLaserSocket } from './lib/laserApi';
+import { flushPendingPaid, useLaserSocket } from './lib/laserApi';
 import inventreeClient from './api/inventreeClient';
 import { useQuery } from '@tanstack/react-query';
 import { infoQueries } from './features/inventory/queries';
@@ -321,17 +321,6 @@ function AppContent() {
     []
   );
 
-  const handleLaserCheckout = async (sessionIds: string[]) => {
-    try {
-      for (const id of sessionIds) await laserApi.setCheckout(id, true);
-      setMobileCheckoutTab('cart');
-      // A volunteer's cart is on the Scan tab; the checkout sends them to the overview.
-      setCurrentPage(isVolunteerMode ? 'scan' : 'checkout');
-    } catch (error) {
-      handleApiError(error, 'putting the laser time in the checkout');
-    }
-  };
-
   // "Buy wood" on the laser page: the checkout's product grid, on the wood.
   const showWood = () => {
     setShopCategory(woodCategory(stockItems));
@@ -460,7 +449,7 @@ function AppContent() {
           </div>
         )}
 
-        {currentPage === 'laser' && <LaserCutterPage live={laser} onCheckout={handleLaserCheckout} onShop={showWood} />}
+        {currentPage === 'laser' && <LaserCutterPage live={laser} onShop={showWood} />}
 
         {currentPage === 'checkout' && !isVolunteerMode && <CheckoutSteps />}
         {currentPage === 'checkout' && (
@@ -513,6 +502,7 @@ function AppContent() {
                 scanEvent={scanEvent}
                 onCheckoutResultChange={setCheckoutResult}
                 laserSessions={laser.sessions}
+                laserProjects={laser.projects}
               />
             </div>
 
@@ -530,6 +520,7 @@ function AppContent() {
                   scanEvent={scanEvent}
                   onCheckoutResultChange={setCheckoutResult}
                   laserSessions={laser.sessions}
+                  laserProjects={laser.projects}
                 />
               </aside>
             </div>
@@ -775,6 +766,7 @@ function AppContent() {
                       scanEvent={scanEvent}
                       onCheckoutResultChange={() => { }}
                       laserSessions={laser.sessions}
+                      laserProjects={laser.projects}
                     />
                   </aside>
                 </motion.div>

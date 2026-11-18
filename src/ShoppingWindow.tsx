@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import ShoppingCart, { type CartItem } from './ShoppingCart';
 import Extras, { EXTRAS_STORAGE_KEY } from './Extras';
-import { laserApi, pendingPaidIds, cutPreviewUrl, type LaserSession } from './lib/laserApi';
+import { laserApi, pendingPaidIds, cutPreviewUrl, type LaserSession, type LaserProject } from './lib/laserApi';
 import { type ItemData, type ScanEvent, isLabMaterial } from './sendCodeHandler';
 import { checkoutApi, typedToCart, useBill, extraLabel, billDescription, type CheckoutCart, type TypedJob, type Bill } from './lib/checkoutApi';
 import { useToast } from './ToastContext';
@@ -17,6 +17,7 @@ interface ShoppingWindowProps {
     onCheckoutResultChange?: (result: { total: number; description: string } | null) => void;
     /** Open laser sessions; the ones with checkout_at set are in this checkout. */
     laserSessions: LaserSession[];
+    laserProjects: LaserProject[];
 }
 
 // v2: cart entries are keyed by part ID. Carts from before hold stock item IDs.
@@ -35,7 +36,7 @@ function storedJobs(): TypedJob[] {
     }
 }
 
-export default function ShoppingWindow({ scanEvent, onCheckoutResultChange, laserSessions }: ShoppingWindowProps) {
+export default function ShoppingWindow({ scanEvent, onCheckoutResultChange, laserSessions, laserProjects }: ShoppingWindowProps) {
     const [cartItems, setCartItems] = useState<CartItem[]>(() => {
         try {
             const stored = localStorage.getItem(CART_STORAGE_KEY);
@@ -245,6 +246,7 @@ export default function ShoppingWindow({ scanEvent, onCheckoutResultChange, lase
                             <Extras
                                 onAdd={job => setTypedJobs(jobs => [...jobs, job])}
                                 openLaserSessions={laserSessions.filter(s => !s.checkout_at && s.total_time > 0)}
+                                laserProjects={laserProjects}
                                 onAddLaserSession={(id) => laserApi.setCheckout(id, true).catch(e => addToast(e instanceof Error ? e.message : String(e), 'error'))}
                             />
                         </div>

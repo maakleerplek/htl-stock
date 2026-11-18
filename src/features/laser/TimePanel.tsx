@@ -16,7 +16,7 @@ import { DiscardConfirm } from './DiscardConfirm';
 
 export type LaserTab = 'cuts' | 'projects' | 'settings';
 
-export function TimePanel({ onCheckout, onShop, live, tab, setTab }: LaserCutterPageProps & { tab: LaserTab; setTab: (t: LaserTab) => void }) {
+export function TimePanel({ onPay, onShop, live, tab, setTab }: LaserCutterPageProps & { onPay: (ids: string[]) => void; tab: LaserTab; setTab: (t: LaserTab) => void }) {
   const rate = useLaserRate();
   const { connected, time, sessions, projects } = live;
   const { addToast } = useToast();
@@ -186,6 +186,7 @@ export function TimePanel({ onCheckout, onShop, live, tab, setTab }: LaserCutter
         <div data-drop="new" className={cn('space-y-3', drag?.over === 'new' && 'outline-2 outline-dashed outline-brand-black outline-offset-4 bg-laser-licht/40')}>
         {loose.length > 0 && (
           <div className="flex items-center justify-end gap-3">
+            <p className="mr-auto text-xs text-grafiet">Tap to tick · hold and drag onto a project</p>
             <button className={LINK} onClick={() => setTicked(new Set(loose.filter(c => !c.checkout_at).map(c => c.id)))}>
               Select all
             </button>
@@ -209,9 +210,9 @@ export function TimePanel({ onCheckout, onShop, live, tab, setTab }: LaserCutter
 
         {tab === 'projects' && (<>
           <NewProject busy={busy} onCreate={name => run(() => laserApi.createProject(name))} />
-          {projects.length === 0 && <p className="border border-dashed border-lijn p-4 text-center text-sm text-grafiet">No projects</p>}
+          {projects.length === 0 && <p className="border border-dashed border-lijn p-4 text-center text-sm text-grafiet">No projects yet. Make one, then drag cuts from New cuts onto it, or tick them and tap Add to project.</p>}
           {projects.map(p => (
-            <ProjectBlock key={p.id} project={p} cuts={cuts.filter(s => s.project_id === p.id)} busy={busy} run={run} onCheckout={onCheckout}
+            <ProjectBlock key={p.id} project={p} cuts={cuts.filter(s => s.project_id === p.id)} busy={busy} run={run} onCheckout={onPay}
               dragProps={dragProps} dropActive={drag?.over === p.id} />
           ))}
         </>)}
@@ -248,11 +249,10 @@ export function TimePanel({ onCheckout, onShop, live, tab, setTab }: LaserCutter
             <span className="font-semibold">€{pickedPrice.toFixed(2)}</span>
           </div>
           <div className="flex gap-2">
-            {/* Says where Pay goes: people did not know the cuts are paid at the checkout. */}
             <button className="flex-1 basis-0 brutalist-button h-12 px-2 bg-emerald-400 text-brand-black font-semibold whitespace-nowrap flex flex-col items-center justify-center leading-tight disabled:opacity-40"
-              disabled={busy} onClick={() => onCheckout(picked.map(s => s.id))}>
-              <span className="flex items-center gap-1.5"><ShoppingCart size={16} aria-hidden /> Pay €{pickedPrice.toFixed(2)} →</span>
-              <span className="text-[11px] font-normal">at the checkout</span>
+              disabled={busy} onClick={() => onPay(picked.map(s => s.id))}>
+              <span className="flex items-center gap-1.5"><ShoppingCart size={16} aria-hidden /> Pay €{pickedPrice.toFixed(2)}</span>
+              <span className="text-[11px] font-normal">QR code, right here</span>
             </button>
             <button className={cn('flex-1 basis-0 brutalist-button h-12 px-2 text-sm font-semibold whitespace-nowrap flex items-center justify-center gap-1.5 disabled:opacity-40', moving ? 'bg-laser-licht' : 'bg-white')}
               aria-expanded={moving} disabled={busy} onClick={() => { setMoving(m => !m); setDeleting(false); }}>

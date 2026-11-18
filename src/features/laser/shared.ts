@@ -2,8 +2,6 @@ import { useRates, type Rates } from '../../lib/checkoutApi';
 import { useLaserSocket, type LaserSession, type LaserOperation, type LaserOutcome, type LaserSetting } from '../../lib/laserApi';
 
 export interface LaserCutterPageProps {
-  /** Put the ticked cuts in the checkout (on the laser service) and go there. */
-  onCheckout: (sessionIds: string[]) => void;
   /** Go to the checkout, to buy material. */
   onShop: () => void;
   live: ReturnType<typeof useLaserSocket>;
